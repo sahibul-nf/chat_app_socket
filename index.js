@@ -1,12 +1,15 @@
-const app = require('express')()
-const http = require('http').createServer(app)
+const express = require("express");
+const { createServer } = require("http");
+const { Server } = require("socket.io");
+
+const app = express();
+const httpServer = createServer(app);
+const socketIO = new Server(httpServer, { /* options */ });
 
 app.get('/', (req, res) => {
     res.send("Node Server is running. Yay!!")
 })
 
-//Socket Logic
-const socketIO = require('socket.io')(http)
 
 socketIO.on('connection', socket => {
     //Get the chatID of the user and join in a room of the same chatID
@@ -16,6 +19,12 @@ socketIO.on('connection', socket => {
     //Leave the room if the user closes the socket
     socket.on('disconnect', () => {
         socket.leave(chatID)
+    })
+
+    //listens for new messages coming in
+    client.on('message', function name(data) {
+        console.log(data);
+        socketIO.emit('message', data);
     })
 
     //Send message to only a particular user
@@ -28,10 +37,13 @@ socketIO.on('connection', socket => {
         socket.in(receiverChatID).emit('receive_message', {
             'content': content,
             'senderChatID': senderChatID,
-            'receiverChatID':receiverChatID,
+            'receiverChatID': receiverChatID,
         })
     })
 });
 
-
-http.listen(process.env.PORT)
+var port = process.env.PORT || 3000;
+httpServer.listen(port, function (err) {
+    if (err) console.log(err);
+    console.log('Listening on port', port);
+})
